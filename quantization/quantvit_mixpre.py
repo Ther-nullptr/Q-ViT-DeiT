@@ -130,10 +130,10 @@ class Attention(nn.Module):
         self.scale = qk_scale or head_dim ** -0.5
 
         self.quant_input = BinaryActivation() if abits == 1 else QuantAct(nbits=abits, offset=offset, learned=learned, mixpre=mixpre)
-        # self.qkv = BinaryLinear(dim, dim * 3, bias=qkv_bias) if wbits == 1 else QuantLinear(dim, dim * 3, bias=qkv_bias, nbits=wbits)
-        self.proj_q = BinaryLinear(dim, dim, bias=qkv_bias) if wbits == 1 else LinearClass(dim, dim, bias=qkv_bias, nbits=wbits, learned=learned, mixpre=mixpre, num_head=num_heads)
-        self.proj_k = BinaryLinear(dim, dim, bias=qkv_bias) if wbits == 1 else LinearClass(dim, dim, bias=qkv_bias, nbits=wbits, learned=learned, mixpre=mixpre, num_head=num_heads)
-        self.proj_v = BinaryLinear(dim, dim, bias=qkv_bias) if wbits == 1 else LinearClass(dim, dim, bias=qkv_bias, nbits=wbits, learned=learned, mixpre=mixpre, num_head=num_heads)
+        self.qkv = BinaryLinear(dim, dim * 3, bias=qkv_bias) if wbits == 1 else QuantLinear(dim, dim * 3, bias=qkv_bias, nbits=wbits)
+        # self.proj_q = BinaryLinear(dim, dim, bias=qkv_bias) if wbits == 1 else LinearClass(dim, dim, bias=qkv_bias, nbits=wbits, learned=learned, mixpre=mixpre, num_head=num_heads)
+        # self.proj_k = BinaryLinear(dim, dim, bias=qkv_bias) if wbits == 1 else LinearClass(dim, dim, bias=qkv_bias, nbits=wbits, learned=learned, mixpre=mixpre, num_head=num_heads)
+        # self.proj_v = BinaryLinear(dim, dim, bias=qkv_bias) if wbits == 1 else LinearClass(dim, dim, bias=qkv_bias, nbits=wbits, learned=learned, mixpre=mixpre, num_head=num_heads)
         self.attn_drop = nn.Dropout(attn_drop)
 
         self.quant_q = BinaryActivation() if abits == 1 else ActClass(nbits=abits, offset=offset, learned=learned, num_head=num_heads, mixpre=mixpre)
@@ -149,13 +149,13 @@ class Attention(nn.Module):
         B, N, C = x.shape
         bitops = 0
         x = self.quant_input(x)
-        # qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         # q.shape : B H N D
-        q = self.proj_q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
-        k = self.proj_k(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
-        v = self.proj_v(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
-        bitops += N * self.proj_q.weight.numel() * torch.mean(bit_pass(self.proj_q.nbits) + bit_pass(self.proj_k.nbits) + bit_pass(self.proj_v.nbits)) * bit_pass(self.quant_input.nbits)
-        # q, k, v = qkv[0], qkv[1], qkv[2]
+        # q = self.proj_q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
+        # k = self.proj_k(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
+        # v = self.proj_v(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
+        bitops += N * (self.qkv.weight.numel() / 3) * torch.mean(bit_pass(self.qkv.nbits)) * bit_pass(self.quant_input.nbits)
+        q, k, v = qkv[0], qkv[1], qkv[2]
         q, k, v = self.quant_q(q), self.quant_k(k), self.quant_v(v)
 
         attn = (q @ k.transpose(-2, -1)) * self.scale

@@ -11,3 +11,5 @@ mean
 scale*
 test
 .vscode/
+
+wandb/

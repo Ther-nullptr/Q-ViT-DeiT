@@ -119,7 +119,7 @@ class QuantConv2d(_Conv2dQ):
             # self.alpha.data.copy_(2 * self.weight.abs().mean() / math.sqrt(Qp))
             # self.alpha.data.copy_(quantize_by_mse(self.weight, Qn, Qp))
             # self.init_state.fill_(1)
-        assert self.init_state == 1
+        # assert self.init_state == 1
         with torch.no_grad():
             g = 1.0 / math.sqrt(self.weight.numel() * Qp)
             # g = 1.0 / math.sqrt(self.weight.numel()) / Qp
@@ -160,7 +160,7 @@ class QuantLinear(_LinearQ):
             # lsq+ init
             # m, v = self.weight.abs().mean(), self.weight.abs().std()
             # self.alpha.data.copy_(torch.max(torch.abs(m - 3*v), torch.abs(m + 3*v)) / 2 ** (self.nbits - 1) )
-        assert self.init_state == 1
+        # assert self.init_state == 1
         with torch.no_grad():
             g = 1.0 / math.sqrt(self.weight.numel() * Qp)
             # g = 1.0 / math.sqrt(self.weight.numel()) / Qp
@@ -222,7 +222,7 @@ class QuantAct(_ActQ):
                 self.act_samples = np.concatenate((self.act_samples, sample), axis=0)
             return x
             
-        assert self.init_state == 1
+        # assert self.init_state == 1
         nbits = bit_pass(self.nbits)
         n = int(nbits)
         if self.signed:
@@ -302,7 +302,7 @@ class QuantMultiHeadAct(_MultiHeadActQ):
                 self.act_samples = np.concatenate((self.act_samples, sample), axis=0)
             return x
             
-        assert self.init_state == 1
+        # assert self.init_state == 1
         nbits = bit_pass(self.nbits)
 
         if self.signed:
@@ -353,7 +353,7 @@ class QuantMuitiHeadLinear(_MultiHeadLinearQ):
         nbits = bit_pass(self.nbits)
         Qn = -2 ** (nbits - 1)
         Qp = 2 ** (nbits - 1) - 1
-        assert self.init_state == 1
+        # assert self.init_state == 1
         # self.weight.shape = (Cin, Cout)
         Cin, Cout = self.weight.shape
         # weight.shape = (Cin, H, Cout/H)
@@ -391,7 +391,7 @@ class QuantMuitiHeadLinear_in(_MultiHeadLinearQ):
         nbits = bit_pass(self.nbits)
         Qn = -2 ** (nbits - 1)
         Qp = 2 ** (nbits - 1) - 1
-        assert self.init_state == 1
+        # assert self.init_state == 1
         # self.weight.shape = (Cin, Cout)
         Cin, Cout = self.weight.shape
         # weight.shape = (Cin, H, Cout/H)

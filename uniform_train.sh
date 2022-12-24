@@ -5,7 +5,7 @@ epochs=300
 id=4bit_uniform
 
 python -m torch.distributed.launch \
---nproc_per_node=8 --use_env main.py \
+--nproc_per_node=4 --use_env main.py \
 --model deit_tiny_patch16_224_mix \
 --batch-size 64 \
 --lr ${lr} \
@@ -16,4 +16,6 @@ python -m torch.distributed.launch \
 --abits ${abits} \
 --dist-eval \
 --output_dir results/deit_tiny_${id}/${wbits}w${abits}a_bs512_baselr${lr}_ft${epochs} \
---finetune results/deit_tiny_float/ckpt/current_checkpoint.pth
+--data-path /data/ImageNet \
+--finetune /home/yujin/projects/models/deit_tiny_patch16_224.pth \
+--eval

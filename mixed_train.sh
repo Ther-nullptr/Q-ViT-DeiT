@@ -1,5 +1,5 @@
-wbits=5
-abits=5
+wbits=8
+abits=8
 lr=2e-04
 wd=0.05
 epochs=300
@@ -8,9 +8,9 @@ budget=21.455
 id=4bit_mixed
 
 python -m torch.distributed.launch \
---nproc_per_node=8 --use_env main.py \
+--nproc_per_node=4 --use_env main.py \
 --model deit_tiny_patch16_224_mix \
---batch-size 64 \
+--batch-size 32 \
 --lr ${lr} \
 --min-lr 0 \
 --epochs ${epochs} \
@@ -25,4 +25,6 @@ python -m torch.distributed.launch \
 --mixpre \
 --head-wise \
 --output_dir results/deit_tiny_${id}/${wbits}w${abits}a_bs512_baselr${lr}_wd${wd}_ft${epochs}_lbd${lbd} \
---finetune results/deit_tiny_float/ckpt/current_checkpoint.pth
+--data-path /data/ImageNet \
+--finetune /home/yujin/projects/models/deit_tiny_patch16_224.pth \
+--eval

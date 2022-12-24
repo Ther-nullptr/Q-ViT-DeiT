@@ -201,7 +201,7 @@ def initialize_quantization(data_loader, model, device, output_dir, sample_iters
             model.eval()
             f.write("activation scales:\n")
             n = 0
-            for images, target in metric_logger.log_every(data_loader, 1, header):
+            for images, target in metric_logger.log_every(data_loader, 1, header): #! use one batch to test the model; image shape: [64, 3, 224, 224]
                 n += 1
                 if n > sample_iters:
                     break

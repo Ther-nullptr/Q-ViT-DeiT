@@ -26,6 +26,7 @@ from samplers import RASampler
 import models
 from quantization import quantvit, quantvit_mixpre
 import utils
+import wandb
 # from torch.utils.tensorboard import SummaryWriter
 
 def get_args_parser():
@@ -283,20 +284,24 @@ def main(args):
         headwise=args.head_wise
     )
 
+    print(model.state_dict().keys())
+
     if args.finetune:
         if args.finetune.startswith('https'):
             checkpoint = torch.hub.load_state_dict_from_url(
                 args.finetune, map_location='cpu', check_hash=True)
         else:
             checkpoint = torch.load(args.finetune, map_location='cpu')
+            print(f"Loaded checkpoint from {args.finetune}")
 
         checkpoint_model = checkpoint['model']
+        print(checkpoint['model'].keys())
         model.load_state_dict(checkpoint_model, strict=False)
 
     model.to(device)
 
-    
-
+    #test_stats = evaluate(data_loader_val, model, device)
+    #print(f"Accuracy of the original network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
     
     output_dir = Path(args.output_dir)
     model_ema = None
@@ -415,18 +420,14 @@ def main(args):
     #                 f.write(json.dumps(log_stats) + "\n")
     #     return
 
-
-    if args.show_bit_state:
-        for name, m in model_without_ddp.named_modules():
-            if hasattr(m, 'nbits'):
-                nbits_float = m.nbits.item()
-                nbits = m.nbits.round().clamp(2,8).item()
-                print(f"{name} is {nbits}({nbits_float})-bit\n")
-        
-
     if args.eval:
         test_stats = evaluate(data_loader_val, model, device)
         print(f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
+        for name, m in model_without_ddp.named_modules():
+            if hasattr(m, 'nbits'):
+                nbits_float = m.nbits.cpu().detach().numpy()
+                nbits = m.nbits.round().clamp(2,8).cpu().detach().numpy()
+                print(f"{name} is {nbits}({nbits_float})-bit\n")
         return
 
     print(f"Start training for {args.epochs} epochs")
@@ -495,6 +496,7 @@ def main(args):
         print(f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
         max_accuracy = max(max_accuracy, test_stats["acc1"])
         print(f'Max accuracy: {max_accuracy:.2f}%')
+        wandb.log(data={"test_acc": test_stats['acc1']}, step=epoch)
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                      **{f'test_{k}': v for k, v in test_stats.items()},
@@ -525,6 +527,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.output_dir:
         Path(args.output_dir +'/ckpt').mkdir(parents=True, exist_ok=True)
+    wandb.init(project='Q-ViT-DeiT', name=args.output_dir, reinit = True, entity = "ther")
     main(args)
 
 def hook(module, grad_input, grad_output):
